@@ -114,12 +114,71 @@ def update_modian():
                             conn.rollback()
         # Return data failed.
         else:
-            print('Return data failed. Status code: %s.' % return_dict['status'])
+            print('Modian returns data failed. Status code: %s.' % return_dict['status'])
+
+
+def update_owhat():
+    owhat_id_list = []
+    # Request parameters.
+    url_detail = "http://appo4.owhat.cn/api?v=1.0&cmd_m=findPricesAndStock&client=%7B%22deviceid%22%3A%22bed3ac48" \
+                 "-fe48-3b11-b174-15538ed5ba61%22%2C%22platform%22%3A%22android%22%2C%22version%22%3A%225.5." \
+                 "0%22%2C%22channel%22%3A%22owhat_app%22%7D&cmd_s=shop.price&requesttimestap=1522855734352"
+    headers = {
+        'User-Agent': 'Mozilla/5.0',
+    }
+
+    # Connect database.
+    conn = pymysql.connect(user='root', password='password', database='b50_demo', charset='utf8')
+    cursor = conn.cursor()  # Create cursor.
+
+    # Get owhat_id from table project.
+    cursor.execute("SELECT project_id FROM project WHERE platform = 'owhat'")
+    for owhat_id in cursor:
+        if owhat_id[0] is not None or owhat_id[0] != '':
+            owhat_id_list.append(owhat_id[0])
+
+    # Sample starts.
+    for owhat_id in owhat_id_list:
+        data = {
+            "data": json.dumps({"fk_goods_id": owhat_id})
+        }
+
+        # Request by post.
+        resp = requests.post(url=url_detail, data=data, headers=headers)
+        # Return data successfully.
+        if resp.json()['result'] == 'success':
+            # Resolve json.
+            return_dict = resp.json()
+            data_dict = return_dict['data']
+            prices_list = data_dict['prices']
+
+            # Calculate total sale.
+            i = 0
+            total_sale = 0
+            sale = []
+            for item in prices_list:
+                sale.append(float(item['price']) * int(item['salestock']))
+            while i < len(sale):
+                total_sale = total_sale + sale[i]
+                i = i + 1
+
+            # Update amount of table project.
+            if float(total_sale) > 0:
+                update_data = (total_sale, owhat_id)
+                sql = "UPDATE project SET amount = %s WHERE project_id = %s"
+                try:
+                    cursor.execute(sql, update_data)
+                    conn.commit()
+                except:
+                    conn.rollback()
+        else:
+            print("Owhat returns data failed.")
 
 
 if __name__ == '__main__':
     # main()
-    update_modian()
+    # update_modian()
+    update_owhat()
     # while True:
     #     update_modian()
     #     time.sleep(DELAY)

@@ -9,32 +9,18 @@ import datetime
 from bs4 import BeautifulSoup
 
 DELAY = 5                   # Delay in second.
-
-
-def main():
-    url = 'http://orderapi.modian.com/v45/product'
-    data = {
-        'pro_id': 79880,
-    }
-    resp = requests.post(url, data)
-    # resp.encoding = 'utf-8'
-    return_dict = resp.json()
-    return_data = ast.literal_eval(return_dict['data'])         # Convert string to dictionary.
-    # print(return_data)
-    project_id = return_data['product_info']['id']
-    project = return_data['product_info']['name']
-    total_amount = return_data['product_info']['backer_money']
-    start_time = return_data['product_info']['start_time']
-    end_time = return_data['product_info']['end_time']
-    support_no = return_data['product_info']['backer_count']
-    # print('project_id', project_id,)
-    print(start_time, end_time)
+conn = pymysql.connect(user='root', password='password', database='b50_demo', charset='utf8')
 
 
 def update_modian():
+    print('Sampling started at %s' % datetime.datetime.now())
+
     fan_club_list = []          # Active fanclub.
     project_list = []           # Projects already exist.
     project_sample = []         # Projects in table sample.
+    project_obsolete = []       # Projects obsoleted.
+    new_project_count = 0
+
     # Modian API URL.
     url = 'http://orderapi.modian.com/v45/user/build_product_list'
     headers = {
@@ -42,14 +28,14 @@ def update_modian():
     }
 
     # Connect database.
-    conn = pymysql.connect(user='root', password='password', database='b50_demo', charset='utf8')
+    # conn = pymysql.connect(user='root', password='password', database='b50_demo', charset='utf8')
     cursor = conn.cursor()      # Create cursor.
 
     # Get modian_id from table fan_club.
-    cursor.execute('SELECT modian_id FROM fan_club WHERE active = 1')
-    for modian_id in cursor:
-        if modian_id[0] != '' and modian_id[0] is not None:
-            fan_club_list.append(modian_id[0])
+    cursor.execute('SELECT modian_id, fan_club FROM fan_club WHERE active = 1')
+    for field in cursor:
+        if field[0] != '' and field[0] is not None:
+            fan_club_list.append((field[0], field[1]))
 
     # Get project_id from table project.
     # (now() - end_time) < 4000: Sampling may be executed even after project has closed.
@@ -64,13 +50,19 @@ def update_modian():
     cursor.execute("SELECT project_id FROM sample WHERE platform = '摩点'")
     for project_id in cursor:
         project_sample.append(project_id[0])
+    # project_sample_count = len(project_sample) + 1      # Project quantity in table sample.
+
+    # Get project_id from table obsolete.
+    cursor.execute("SELECT project_id FROM obsolete")
+    for project_id in cursor:
+        project_obsolete.append(project_id[0])
 
     # Sample starts.
     for fan_club in fan_club_list:
         # Modian API parameters.
         time.sleep(1)
         data = {
-            'to_user_id': fan_club,
+            'to_user_id': fan_club[0],
             'page_index': 0,
             'client': 2,
             'page_rows': 10,
@@ -86,10 +78,8 @@ def update_modian():
 
             # Compare sampling project_id with that in table project.
             for project in projects:
-                print(project)
                 # Projects already exist.
-                if project['id'] in project_list:
-                    # print('Project %s already exists.' % (project['id']))
+                if project['id'] in project_list and project['id'] not in project_obsolete:
                     # Update table project.
                     update_data = (float(project['backer_money']), project['id'])
                     sql = "UPDATE project SET amount = %s WHERE project_id = %s"
@@ -100,6 +90,9 @@ def update_modian():
                         conn.rollback()
                 # New projects, save to table sample.
                 else:
+                    new_project_count += 1
+                    # print("New project detected. Project name: 《%s》. Fan club: %s. Start time: %s."
+                    #       % (project['name'], project['username'], project['start_time']))
                     # Projects not exist in table sample.
                     if project['id'] not in project_sample:
                         new_data = (project['name'], project['id'], '摩点', project['backer_money'],
@@ -112,9 +105,16 @@ def update_modian():
                             conn.commit()
                         except:
                             conn.rollback()
+
         # Return data failed.
         else:
             print('Modian returns data failed. Status code: %s.' % return_dict['status'])
+
+        # Sampling of one fan club finished.
+        print("Sampling of %s finished." % fan_club[1])
+
+    # Sampling finished.
+    print('Sampling of Modian finished at %s. %s new project(s) detected.' % (datetime.datetime.now(), new_project_count))
 
 
 def update_owhat():
@@ -128,7 +128,7 @@ def update_owhat():
     }
 
     # Connect database.
-    conn = pymysql.connect(user='root', password='password', database='b50_demo', charset='utf8')
+    # conn = pymysql.connect(user='root', password='password', database='b50_demo', charset='utf8')
     cursor = conn.cursor()  # Create cursor.
 
     # Get owhat_id from table project.
@@ -176,8 +176,7 @@ def update_owhat():
 
 
 if __name__ == '__main__':
-    # main()
-    # update_modian()
+    update_modian()
     update_owhat()
     # while True:
     #     update_modian()

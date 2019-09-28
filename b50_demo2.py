@@ -175,6 +175,13 @@ def update_owhat():
             print("Owhat returns data failed.")
 
 
+def test():
+    url = 'http://orderapi.modian.com/v45/user/build_product_list'
+    headers = {
+        'User-Agent': 'Mozilla/5.0',
+    }
+
+
 if __name__ == '__main__':
     update_modian()
     update_owhat()

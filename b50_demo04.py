@@ -190,7 +190,9 @@ def main():
     # fan_club_list = get_fan_club()
     # sample_new_owhat_project(fan_club_list)
     # update_odd_owhat()
-    get_modian_project_by_fan_club(1090311)
+    # get_modian_project_by_fan_club(1090311)
+    amount = owhat_project_amount(23295)
+    print(amount)
 
 
 if __name__ == '__main__':

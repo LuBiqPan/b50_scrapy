@@ -3,6 +3,7 @@ import requests
 import json
 import pymysql
 import time
+import chardet
 
 
 def get_modian_project_by_fan_club(fan_club_id):
@@ -20,10 +21,15 @@ def get_modian_project_by_fan_club(fan_club_id):
     }
     resp = requests.post(url, data=data, headers=headers)
     return_dict = resp.json()
-    print(return_dict)
+    # print(return_dict)
     project_info = json.loads(return_dict['data'])
     # print(project_info)
 
 
 if __name__ == '__main__':
     get_modian_project_by_fan_club(1090311)
+
+    fileName = r'G:\Practice\Python\b50_scrapy\modian_sample.py'
+    currentFile = open(fileName, mode='rb')
+    content = currentFile.read()
+    print(chardet.detect(content))

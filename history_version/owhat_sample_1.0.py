@@ -27,6 +27,7 @@ def owhat_project_amount(project_id):
             project_id: numeric id of a a owhat amount project
         Return: total amount of given Owhat project
         Author: Lu.Biq Pan
+        Version: 1.0
         Date: September 2019
     """
     # Request parameters.

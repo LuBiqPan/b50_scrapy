@@ -1,0 +1,8 @@
+# Satrt program
+nohup python3 program_name.py &
+
+# Stop program
+kill pid
+
+# Search program
+ps -lfe |grep python

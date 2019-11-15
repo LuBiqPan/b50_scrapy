@@ -30,6 +30,7 @@ def update_modian():
             or updated if the project already existed in database.
         Parameter: none
         Author: Lu.Biq Pan
+        Version: 1.0
         Date: September 2019
     """
     print('Sampling of Modian started at %s' % datetime.now())
@@ -143,7 +144,6 @@ def update_modian():
     # Sampling finished.
     print('Sampling of Modian finished at %s.' % datetime.now())
     # print("#" * 48)
-    # print("\n")
 
 
 def main():
